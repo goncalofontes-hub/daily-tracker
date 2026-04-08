@@ -1,11 +1,12 @@
-var CACHE_NAME = 'daily-tracker-v1';
+var CACHE_NAME = 'daily-tracker-v2';
 var ASSETS = [
   './',
   './index.html',
   './style.css',
   './app.js',
   './manifest.json',
-  './icons/icon.svg'
+  './icons/icon-192.png',
+  './icons/icon-512.png'
 ];
 
 self.addEventListener('install', function (event) {
