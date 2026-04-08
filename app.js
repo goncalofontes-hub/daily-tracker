@@ -514,54 +514,59 @@
     });
     if (current.length) segments.push(current);
 
+    // Resolve CSS variables to actual colours for SVG compatibility
+    var cs = getComputedStyle(document.documentElement);
+    var cMuted  = cs.getPropertyValue('--text-muted').trim()  || '#555';
+    var cDim    = cs.getPropertyValue('--text-dim').trim()    || '#888';
+    var cPrimary= cs.getPropertyValue('--primary').trim()     || '#6c63ff';
+    var cSuccess= cs.getPropertyValue('--success').trim()     || '#4ecdc4';
+    var cWarn   = cs.getPropertyValue('--warning').trim()     || '#ffe66d';
+    var cSurface= cs.getPropertyValue('--surface').trim()     || '#1a1a2e';
+
     var svg = '<svg class="steps-chart" viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg">';
 
-    // Grid lines (3 horizontal)
+    // Grid lines
     [0.25, 0.5, 0.75, 1].forEach(function (f) {
       var y = padT + innerH - f * innerH;
-      var label = formatNumber(Math.round(maxVal * f));
-      svg += '<line x1="' + padL + '" y1="' + y + '" x2="' + (W - padR) + '" y2="' + y + '" stroke="var(--text-muted)" stroke-width="0.5" stroke-dasharray="3,3"/>';
-      svg += '<text x="' + (padL - 4) + '" y="' + (y + 4) + '" text-anchor="end" font-size="9" fill="var(--text-muted)">' + (maxVal * f >= 1000 ? Math.round(maxVal * f / 1000) + 'k' : label) + '</text>';
+      svg += '<line x1="' + padL + '" y1="' + y + '" x2="' + (W - padR) + '" y2="' + y + '" stroke="' + cMuted + '" stroke-width="0.5" stroke-dasharray="3,3"/>';
+      svg += '<text x="' + (padL - 4) + '" y="' + (y + 4) + '" text-anchor="end" font-size="9" fill="' + cDim + '">' + (maxVal * f >= 1000 ? Math.round(maxVal * f / 1000) + 'k' : formatNumber(Math.round(maxVal * f))) + '</text>';
     });
 
     // X-axis bottom line
-    svg += '<line x1="' + padL + '" y1="' + (padT + innerH) + '" x2="' + (W - padR) + '" y2="' + (padT + innerH) + '" stroke="var(--text-muted)" stroke-width="0.5"/>';
+    svg += '<line x1="' + padL + '" y1="' + (padT + innerH) + '" x2="' + (W - padR) + '" y2="' + (padT + innerH) + '" stroke="' + cMuted + '" stroke-width="0.5"/>';
 
-    // X labels — show first, middle, last
-    var labelIdxs = [0, Math.floor((count - 1) / 2), count - 1];
-    labelIdxs.forEach(function (i) {
-      var d = pts[i].date;
-      var parsed = parseDate(d);
-      var label = parsed.getDate() + ' ' + MONTHS[parsed.getMonth()];
-      svg += '<text x="' + xOf(i) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="9" fill="var(--text-dim)">' + label + '</text>';
+    // X labels
+    [0, Math.floor((count - 1) / 2), count - 1].forEach(function (i) {
+      var parsed = parseDate(pts[i].date);
+      svg += '<text x="' + xOf(i) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="9" fill="' + cDim + '">' + parsed.getDate() + ' ' + MONTHS[parsed.getMonth()] + '</text>';
     });
 
     // Goal line
-    svg += '<line x1="' + padL + '" y1="' + goalY + '" x2="' + (W - padR) + '" y2="' + goalY + '" stroke="var(--warning)" stroke-width="1" stroke-dasharray="5,3" opacity="0.7"/>';
-    svg += '<text x="' + (W - padR - 2) + '" y="' + (goalY - 3) + '" text-anchor="end" font-size="8" fill="var(--warning)" opacity="0.9">goal</text>';
+    if (goal > 0) {
+      svg += '<line x1="' + padL + '" y1="' + goalY + '" x2="' + (W - padR) + '" y2="' + goalY + '" stroke="' + cWarn + '" stroke-width="1" stroke-dasharray="5,3" opacity="0.7"/>';
+      svg += '<text x="' + (W - padR - 2) + '" y="' + (goalY - 3) + '" text-anchor="end" font-size="8" fill="' + cWarn + '" opacity="0.9">goal</text>';
+    }
 
-    // Fill area under line (gradient)
+    // Fill area under line
     segments.forEach(function (seg) {
       if (seg.length < 2) return;
       var bottom = padT + innerH;
       var fillPts = seg.map(function (p) { return p[0] + ',' + p[1]; }).join(' ');
       var first = seg[0], last = seg[seg.length - 1];
-      svg += '<polygon points="' + first[0] + ',' + bottom + ' ' + fillPts + ' ' + last[0] + ',' + bottom + '" fill="var(--primary)" opacity="0.12"/>';
+      svg += '<polygon points="' + first[0] + ',' + bottom + ' ' + fillPts + ' ' + last[0] + ',' + bottom + '" fill="' + cPrimary + '" opacity="0.12"/>';
     });
 
     // Line segments
     segments.forEach(function (seg) {
       if (seg.length < 2) return;
-      var pts2 = seg.map(function (p) { return p[0] + ',' + p[1]; }).join(' ');
-      svg += '<polyline points="' + pts2 + '" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+      svg += '<polyline points="' + seg.map(function (p) { return p[0] + ',' + p[1]; }).join(' ') + '" fill="none" stroke="' + cPrimary + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
     });
 
     // Dots
     pts.forEach(function (p, i) {
       if (!p.value) return;
       var cx = xOf(i), cy = yOf(p.value);
-      var aboveGoal = p.value >= goal;
-      svg += '<circle cx="' + cx + '" cy="' + cy + '" r="3" fill="' + (aboveGoal ? 'var(--success)' : 'var(--primary)') + '" stroke="var(--surface)" stroke-width="1.5"/>';
+      svg += '<circle cx="' + cx + '" cy="' + cy + '" r="3" fill="' + (p.value >= goal ? cSuccess : cPrimary) + '" stroke="' + cSurface + '" stroke-width="1.5"/>';
     });
 
     svg += '</svg>';
@@ -591,41 +596,48 @@
     function xOf(i) { return padL + (i / (count - 1)) * innerW; }
     function yOf(v) { return padT + innerH - ((v - yMin) / yRange) * innerH; }
 
+    var cs = getComputedStyle(document.documentElement);
+    var cMuted  = cs.getPropertyValue('--text-muted').trim()  || '#555';
+    var cDim    = cs.getPropertyValue('--text-dim').trim()    || '#888';
+    var cWarn   = cs.getPropertyValue('--warning').trim()     || '#ffe66d';
+    var cSuccess= cs.getPropertyValue('--success').trim()     || '#4ecdc4';
+    var cAccent = cs.getPropertyValue('--accent').trim()      || '#ff6b6b';
+    var cSurface= cs.getPropertyValue('--surface').trim()     || '#1a1a2e';
+
     var svg = '<svg class="steps-chart" viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg">';
 
     // Grid lines at min, mid, max
     [yMin, (yMin + yMax) / 2, yMax].forEach(function (v) {
       var y = yOf(v);
-      svg += '<line x1="' + padL + '" y1="' + y + '" x2="' + (W - padR) + '" y2="' + y + '" stroke="var(--text-muted)" stroke-width="0.5" stroke-dasharray="3,3"/>';
-      svg += '<text x="' + (padL - 4) + '" y="' + (y + 4) + '" text-anchor="end" font-size="9" fill="var(--text-muted)">' + Math.round(v * 10) / 10 + '</text>';
+      svg += '<line x1="' + padL + '" y1="' + y + '" x2="' + (W - padR) + '" y2="' + y + '" stroke="' + cMuted + '" stroke-width="0.5" stroke-dasharray="3,3"/>';
+      svg += '<text x="' + (padL - 4) + '" y="' + (y + 4) + '" text-anchor="end" font-size="9" fill="' + cMuted + '">' + Math.round(v * 10) / 10 + '</text>';
     });
 
     // X-axis line
-    svg += '<line x1="' + padL + '" y1="' + (padT + innerH) + '" x2="' + (W - padR) + '" y2="' + (padT + innerH) + '" stroke="var(--text-muted)" stroke-width="0.5"/>';
+    svg += '<line x1="' + padL + '" y1="' + (padT + innerH) + '" x2="' + (W - padR) + '" y2="' + (padT + innerH) + '" stroke="' + cMuted + '" stroke-width="0.5"/>';
 
     // X labels — first, middle, last
     [0, Math.floor((count - 1) / 2), count - 1].forEach(function (i) {
-      var d = pts[i].date;
-      var p = parseDate(d);
-      svg += '<text x="' + xOf(i) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="9" fill="var(--text-dim)">' + p.getDate() + ' ' + MONTHS[p.getMonth()] + '</text>';
+      var p = parseDate(pts[i].date);
+      svg += '<text x="' + xOf(i) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="9" fill="' + cDim + '">' + p.getDate() + ' ' + MONTHS[p.getMonth()] + '</text>';
     });
 
     // Fill under line
     var linePts = pts.map(function (p, i) { return xOf(i) + ',' + yOf(p.value); }).join(' ');
     var bottom = padT + innerH;
-    svg += '<polygon points="' + xOf(0) + ',' + bottom + ' ' + linePts + ' ' + xOf(count - 1) + ',' + bottom + '" fill="var(--warning)" opacity="0.1"/>';
+    svg += '<polygon points="' + xOf(0) + ',' + bottom + ' ' + linePts + ' ' + xOf(count - 1) + ',' + bottom + '" fill="' + cWarn + '" opacity="0.1"/>';
 
     // Line
-    svg += '<polyline points="' + linePts + '" fill="none" stroke="var(--warning)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+    svg += '<polyline points="' + linePts + '" fill="none" stroke="' + cWarn + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
 
     // Dots — colour by direction vs previous
     pts.forEach(function (p, i) {
       var cx = xOf(i), cy = yOf(p.value);
-      var color = i === 0 ? 'var(--text-dim)'
-                : p.value < pts[i - 1].value ? 'var(--success)'
-                : p.value > pts[i - 1].value ? 'var(--accent)'
-                : 'var(--text-dim)';
-      svg += '<circle cx="' + cx + '" cy="' + cy + '" r="3.5" fill="' + color + '" stroke="var(--surface)" stroke-width="1.5"/>';
+      var color = i === 0 ? cDim
+                : p.value < pts[i - 1].value ? cSuccess
+                : p.value > pts[i - 1].value ? cAccent
+                : cDim;
+      svg += '<circle cx="' + cx + '" cy="' + cy + '" r="3.5" fill="' + color + '" stroke="' + cSurface + '" stroke-width="1.5"/>';
     });
 
     svg += '</svg>';
