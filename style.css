@@ -630,6 +630,22 @@ body {
   font-weight: 600;
 }
 
+.analytics-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+
+.analytics-title-row .analytics-title {
+  margin-bottom: 0;
+}
+
+.analytics-weight-delta {
+  font-size: 15px;
+  font-weight: 700;
+}
+
 /* Habit completion bars */
 .analytics-row {
   display: flex;

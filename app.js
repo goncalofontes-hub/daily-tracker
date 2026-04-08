@@ -568,6 +568,70 @@
     return svg;
   }
 
+  // ── Weight SVG chart ──
+  function buildWeightChart(weights) {
+    var W = 340, H = 130;
+    var padL = 44, padR = 12, padT = 12, padB = 28;
+    var innerW = W - padL - padR;
+    var innerH = H - padT - padB;
+
+    var pts = weights;
+    var count = pts.length;
+    if (count < 2) return '';
+
+    var values = pts.map(function (p) { return p.value; });
+    var minVal = Math.min.apply(null, values);
+    var maxVal = Math.max.apply(null, values);
+    // Add a little padding so the line isn't flush against edges
+    var range = maxVal - minVal || 1;
+    var yMin = Math.floor((minVal - range * 0.2) * 2) / 2;
+    var yMax = Math.ceil((maxVal  + range * 0.2) * 2) / 2;
+    var yRange = yMax - yMin;
+
+    function xOf(i) { return padL + (i / (count - 1)) * innerW; }
+    function yOf(v) { return padT + innerH - ((v - yMin) / yRange) * innerH; }
+
+    var svg = '<svg class="steps-chart" viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg">';
+
+    // Grid lines at min, mid, max
+    [yMin, (yMin + yMax) / 2, yMax].forEach(function (v) {
+      var y = yOf(v);
+      svg += '<line x1="' + padL + '" y1="' + y + '" x2="' + (W - padR) + '" y2="' + y + '" stroke="var(--text-muted)" stroke-width="0.5" stroke-dasharray="3,3"/>';
+      svg += '<text x="' + (padL - 4) + '" y="' + (y + 4) + '" text-anchor="end" font-size="9" fill="var(--text-muted)">' + Math.round(v * 10) / 10 + '</text>';
+    });
+
+    // X-axis line
+    svg += '<line x1="' + padL + '" y1="' + (padT + innerH) + '" x2="' + (W - padR) + '" y2="' + (padT + innerH) + '" stroke="var(--text-muted)" stroke-width="0.5"/>';
+
+    // X labels — first, middle, last
+    [0, Math.floor((count - 1) / 2), count - 1].forEach(function (i) {
+      var d = pts[i].date;
+      var p = parseDate(d);
+      svg += '<text x="' + xOf(i) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="9" fill="var(--text-dim)">' + p.getDate() + ' ' + MONTHS[p.getMonth()] + '</text>';
+    });
+
+    // Fill under line
+    var linePts = pts.map(function (p, i) { return xOf(i) + ',' + yOf(p.value); }).join(' ');
+    var bottom = padT + innerH;
+    svg += '<polygon points="' + xOf(0) + ',' + bottom + ' ' + linePts + ' ' + xOf(count - 1) + ',' + bottom + '" fill="var(--warning)" opacity="0.1"/>';
+
+    // Line
+    svg += '<polyline points="' + linePts + '" fill="none" stroke="var(--warning)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+
+    // Dots — colour by direction vs previous
+    pts.forEach(function (p, i) {
+      var cx = xOf(i), cy = yOf(p.value);
+      var color = i === 0 ? 'var(--text-dim)'
+                : p.value < pts[i - 1].value ? 'var(--success)'
+                : p.value > pts[i - 1].value ? 'var(--accent)'
+                : 'var(--text-dim)';
+      svg += '<circle cx="' + cx + '" cy="' + cy + '" r="3.5" fill="' + color + '" stroke="var(--surface)" stroke-width="1.5"/>';
+    });
+
+    svg += '</svg>';
+    return svg;
+  }
+
   // ── Render: Analytics ──
   function renderAnalytics() {
     var container = document.getElementById('analytics-content');
@@ -678,12 +742,36 @@
       var weights = [];
       rangeDates.forEach(function (d) {
         var v = getEntry(d)[weightItem.id];
-        if (v !== undefined && v !== null && v !== '') weights.push({ date: d, value: v });
+        var n = parseFloat(v);
+        if (!isNaN(n) && n > 0) weights.push({ date: d, value: n });
       });
       if (weights.length) {
-        html += '<div class="analytics-section"><div class="analytics-title">Weight</div><div class="analytics-weight-list">';
-        weights.slice(-8).reverse().forEach(function (w) {
-          html += '<div class="analytics-weight-row"><span class="analytics-weight-date">' + prettyDate(w.date) + '</span><span class="analytics-weight-val">' + escapeHtml(w.value) + '</span></div>';
+        var wFirst = weights[0].value;
+        var wLast  = weights[weights.length - 1].value;
+        var wDiff  = Math.round((wLast - wFirst) * 10) / 10;
+        var wDiffStr = (wDiff > 0 ? '+' : '') + wDiff + ' kg';
+        var wDiffColor = wDiff < 0 ? 'var(--success)' : wDiff > 0 ? 'var(--accent)' : 'var(--text-dim)';
+
+        html += '<div class="analytics-section">';
+        html += '<div class="analytics-title-row">';
+        html += '<span class="analytics-title">Weight</span>';
+        if (weights.length > 1) {
+          html += '<span class="analytics-weight-delta" style="color:' + wDiffColor + '">' + wDiffStr + '</span>';
+        }
+        html += '</div>';
+
+        // Chart (only if 2+ points)
+        if (weights.length >= 2) {
+          html += buildWeightChart(weights);
+        }
+
+        // Recent list
+        html += '<div class="analytics-weight-list" style="margin-top:10px">';
+        weights.slice(-6).reverse().forEach(function (w) {
+          html += '<div class="analytics-weight-row">';
+          html += '<span class="analytics-weight-date">' + prettyDate(w.date) + '</span>';
+          html += '<span class="analytics-weight-val">' + w.value + ' kg</span>';
+          html += '</div>';
         });
         html += '</div></div>';
       }
