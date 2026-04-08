@@ -1,4 +1,4 @@
-var CACHE_NAME = 'daily-tracker-v3';
+var CACHE_NAME = 'daily-tracker-v4';
 var ASSETS = [
   './',
   './index.html',
