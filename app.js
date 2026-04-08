@@ -69,6 +69,16 @@
       items = si ? JSON.parse(si) : getDefaultItems();
       if (!si) saveItems();
 
+      // Migrate: ensure all items have goal property; set 10000 for Steps
+      var migrated = false;
+      items.forEach(function (item) {
+        if (item.goal === undefined) {
+          item.goal = (item.name.toLowerCase().indexOf('step') !== -1 && item.type === 'text') ? 10000 : null;
+          migrated = true;
+        }
+      });
+      if (migrated) saveItems();
+
       var se = localStorage.getItem(STORAGE_ENTRIES);
       entries = se ? JSON.parse(se) : {};
     } catch (e) {
@@ -593,7 +603,8 @@
     }
 
     // ── Steps ──
-    var stepsItem = items.find(function (i) { return i.type === 'text' && i.goal > 0; });
+    var stepsItem = items.find(function (i) { return i.type === 'text' && i.name.toLowerCase().indexOf('step') !== -1; })
+                  || items.find(function (i) { return i.type === 'text' && i.goal > 0; });
     if (stepsItem) {
       var stepValues = [];
       rangeDates.forEach(function (d) {
@@ -605,9 +616,11 @@
         var total = nonZero.reduce(function (a, v) { return a + v.value; }, 0);
         var avg = Math.round(total / nonZero.length);
         var best = nonZero.reduce(function (a, v) { return v.value > a.value ? v : a; });
-        var goalPct = Math.min(Math.round((avg / stepsItem.goal) * 100), 100);
+        var stepGoal = stepsItem.goal || 0;
+        var goalPct = stepGoal > 0 ? Math.min(Math.round((avg / stepGoal) * 100), 100) : 0;
+        var titleSuffix = stepGoal > 0 ? ' — goal ' + formatNumber(stepGoal) : '';
 
-        html += '<div class="analytics-section"><div class="analytics-title">' + escapeHtml(stepsItem.name) + ' — goal ' + formatNumber(stepsItem.goal) + '</div>';
+        html += '<div class="analytics-section"><div class="analytics-title">' + escapeHtml(stepsItem.name) + titleSuffix + '</div>';
 
         // Stats row
         html += '<div class="analytics-stats">';
@@ -617,7 +630,7 @@
         html += '</div>';
 
         // SVG line chart
-        html += buildStepsChart(stepValues, stepsItem.goal);
+        html += buildStepsChart(stepValues, stepGoal);
 
         html += '</div>';
       }
