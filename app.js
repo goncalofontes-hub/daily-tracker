@@ -817,13 +817,41 @@
       tab.addEventListener('click', function () { switchTab(tab.getAttribute('data-tab')); });
     });
 
-    // Date nav
+    // Date nav — buttons
     document.getElementById('btn-prev').addEventListener('click', function () {
       currentDate = addDays(currentDate, -1); renderAll();
     });
     document.getElementById('btn-next').addEventListener('click', function () {
       if (currentDate < todayStr()) { currentDate = addDays(currentDate, 1); renderAll(); }
     });
+
+    // Date nav — swipe on the checklist view
+    var swipeStartX = null;
+    var swipeStartY = null;
+    var viewChecklist = document.getElementById('view-checklist');
+
+    viewChecklist.addEventListener('touchstart', function (e) {
+      swipeStartX = e.touches[0].clientX;
+      swipeStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    viewChecklist.addEventListener('touchend', function (e) {
+      if (swipeStartX === null) return;
+      var dx = e.changedTouches[0].clientX - swipeStartX;
+      var dy = e.changedTouches[0].clientY - swipeStartY;
+      // Only trigger if mostly horizontal (dx > dy) and long enough
+      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        if (dx < 0) {
+          // Swipe left → next day
+          if (currentDate < todayStr()) { currentDate = addDays(currentDate, 1); renderAll(); }
+        } else {
+          // Swipe right → previous day
+          currentDate = addDays(currentDate, -1); renderAll();
+        }
+      }
+      swipeStartX = null;
+      swipeStartY = null;
+    }, { passive: true });
 
     // Theme toggle
     document.getElementById('theme-toggle').addEventListener('change', function () {
