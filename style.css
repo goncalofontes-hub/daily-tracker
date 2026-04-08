@@ -1088,3 +1088,14 @@ body {
 .reminder-time-input:focus {
   border-color: var(--primary);
 }
+
+/* Steps chart */
+.steps-chart {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  overflow: visible;
+  background: var(--surface2);
+  border-radius: 8px;
+  padding: 4px 0;
+}

@@ -465,6 +465,99 @@
     });
   }
 
+  // ── Steps SVG chart ──
+  function buildStepsChart(stepValues, goal) {
+    var W = 340, H = 140;
+    var padL = 44, padR = 12, padT = 12, padB = 28;
+    var innerW = W - padL - padR;
+    var innerH = H - padT - padB;
+
+    var n = stepValues.length;
+    // Only show up to 30 points to keep it readable; take last N
+    var maxPoints = 30;
+    var pts = n > maxPoints ? stepValues.slice(n - maxPoints) : stepValues;
+    var count = pts.length;
+    if (count < 2) return '';
+
+    var maxVal = Math.max(goal, Math.max.apply(null, pts.map(function (p) { return p.value; })));
+    // Round max up to nearest 2000
+    maxVal = Math.ceil(maxVal / 2000) * 2000;
+
+    function xOf(i) { return padL + (i / (count - 1)) * innerW; }
+    function yOf(v) { return padT + innerH - (v / maxVal) * innerH; }
+
+    // Goal line Y
+    var goalY = yOf(goal);
+
+    // Build polyline points for actual values (skip zeros as gaps)
+    // Split into segments at zero values
+    var segments = [];
+    var current = [];
+    pts.forEach(function (p, i) {
+      if (p.value > 0) {
+        current.push([xOf(i), yOf(p.value)]);
+      } else {
+        if (current.length > 1) segments.push(current);
+        else if (current.length === 1) segments.push(current); // single point still draw dot
+        current = [];
+      }
+    });
+    if (current.length) segments.push(current);
+
+    var svg = '<svg class="steps-chart" viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg">';
+
+    // Grid lines (3 horizontal)
+    [0.25, 0.5, 0.75, 1].forEach(function (f) {
+      var y = padT + innerH - f * innerH;
+      var label = formatNumber(Math.round(maxVal * f));
+      svg += '<line x1="' + padL + '" y1="' + y + '" x2="' + (W - padR) + '" y2="' + y + '" stroke="var(--text-muted)" stroke-width="0.5" stroke-dasharray="3,3"/>';
+      svg += '<text x="' + (padL - 4) + '" y="' + (y + 4) + '" text-anchor="end" font-size="9" fill="var(--text-muted)">' + (maxVal * f >= 1000 ? Math.round(maxVal * f / 1000) + 'k' : label) + '</text>';
+    });
+
+    // X-axis bottom line
+    svg += '<line x1="' + padL + '" y1="' + (padT + innerH) + '" x2="' + (W - padR) + '" y2="' + (padT + innerH) + '" stroke="var(--text-muted)" stroke-width="0.5"/>';
+
+    // X labels — show first, middle, last
+    var labelIdxs = [0, Math.floor((count - 1) / 2), count - 1];
+    labelIdxs.forEach(function (i) {
+      var d = pts[i].date;
+      var parsed = parseDate(d);
+      var label = parsed.getDate() + ' ' + MONTHS[parsed.getMonth()];
+      svg += '<text x="' + xOf(i) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="9" fill="var(--text-dim)">' + label + '</text>';
+    });
+
+    // Goal line
+    svg += '<line x1="' + padL + '" y1="' + goalY + '" x2="' + (W - padR) + '" y2="' + goalY + '" stroke="var(--warning)" stroke-width="1" stroke-dasharray="5,3" opacity="0.7"/>';
+    svg += '<text x="' + (W - padR - 2) + '" y="' + (goalY - 3) + '" text-anchor="end" font-size="8" fill="var(--warning)" opacity="0.9">goal</text>';
+
+    // Fill area under line (gradient)
+    segments.forEach(function (seg) {
+      if (seg.length < 2) return;
+      var bottom = padT + innerH;
+      var fillPts = seg.map(function (p) { return p[0] + ',' + p[1]; }).join(' ');
+      var first = seg[0], last = seg[seg.length - 1];
+      svg += '<polygon points="' + first[0] + ',' + bottom + ' ' + fillPts + ' ' + last[0] + ',' + bottom + '" fill="var(--primary)" opacity="0.12"/>';
+    });
+
+    // Line segments
+    segments.forEach(function (seg) {
+      if (seg.length < 2) return;
+      var pts2 = seg.map(function (p) { return p[0] + ',' + p[1]; }).join(' ');
+      svg += '<polyline points="' + pts2 + '" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+    });
+
+    // Dots
+    pts.forEach(function (p, i) {
+      if (!p.value) return;
+      var cx = xOf(i), cy = yOf(p.value);
+      var aboveGoal = p.value >= goal;
+      svg += '<circle cx="' + cx + '" cy="' + cy + '" r="3" fill="' + (aboveGoal ? 'var(--success)' : 'var(--primary)') + '" stroke="var(--surface)" stroke-width="1.5"/>';
+    });
+
+    svg += '</svg>';
+    return svg;
+  }
+
   // ── Render: Analytics ──
   function renderAnalytics() {
     var container = document.getElementById('analytics-content');
@@ -505,21 +598,27 @@
       var stepValues = [];
       rangeDates.forEach(function (d) {
         var n = parseFloat(getEntry(d)[stepsItem.id]);
-        if (!isNaN(n) && n > 0) stepValues.push({ date: d, value: n });
+        stepValues.push({ date: d, value: (!isNaN(n) && n > 0) ? n : 0 });
       });
-      if (stepValues.length) {
-        var total = stepValues.reduce(function (a, v) { return a + v.value; }, 0);
-        var avg = Math.round(total / stepValues.length);
-        var best = stepValues.reduce(function (a, v) { return v.value > a.value ? v : a; });
+      var nonZero = stepValues.filter(function (v) { return v.value > 0; });
+      if (nonZero.length) {
+        var total = nonZero.reduce(function (a, v) { return a + v.value; }, 0);
+        var avg = Math.round(total / nonZero.length);
+        var best = nonZero.reduce(function (a, v) { return v.value > a.value ? v : a; });
         var goalPct = Math.min(Math.round((avg / stepsItem.goal) * 100), 100);
+
         html += '<div class="analytics-section"><div class="analytics-title">' + escapeHtml(stepsItem.name) + ' — goal ' + formatNumber(stepsItem.goal) + '</div>';
+
+        // Stats row
         html += '<div class="analytics-stats">';
         html += '<div class="stat-card"><div class="stat-value">' + formatNumber(avg) + '</div><div class="stat-label">Avg / day</div></div>';
         html += '<div class="stat-card"><div class="stat-value">' + formatNumber(Math.round(total)) + '</div><div class="stat-label">Total</div></div>';
         html += '<div class="stat-card"><div class="stat-value">' + formatNumber(best.value) + '</div><div class="stat-label">Best day</div></div>';
         html += '</div>';
-        html += '<div style="margin-top:10px"><div class="analytics-bar-wrap" style="height:10px;border-radius:5px"><div class="analytics-bar" style="width:' + goalPct + '%"></div></div>';
-        html += '<div style="font-size:12px;color:var(--text-dim);margin-top:4px;text-align:right">Avg vs goal: ' + goalPct + '%</div></div>';
+
+        // SVG line chart
+        html += buildStepsChart(stepValues, stepsItem.goal);
+
         html += '</div>';
       }
     }
