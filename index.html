@@ -25,7 +25,7 @@
     <nav id="tabs">
       <button class="tab active" data-tab="checklist">Today</button>
       <button class="tab" data-tab="history">History</button>
-      <button class="tab" data-tab="badges">Badges</button>
+      <button class="tab" data-tab="analytics">Analytics</button>
       <button class="tab" data-tab="settings">Settings</button>
     </nav>
 
@@ -37,12 +37,28 @@
 
     <!-- History View -->
     <main id="view-history" class="view">
+      <div class="history-filter">
+        <div class="filter-row">
+          <label>From</label>
+          <input type="date" id="filter-from">
+        </div>
+        <div class="filter-row">
+          <label>To</label>
+          <input type="date" id="filter-to">
+        </div>
+      </div>
       <div id="history-list"></div>
     </main>
 
-    <!-- Badges View -->
-    <main id="view-badges" class="view">
-      <div id="badges-list"></div>
+    <!-- Analytics View -->
+    <main id="view-analytics" class="view">
+      <div class="analytics-period">
+        <button class="period-btn active" data-days="7">7d</button>
+        <button class="period-btn" data-days="30">30d</button>
+        <button class="period-btn" data-days="90">90d</button>
+        <button class="period-btn" data-days="0">All</button>
+      </div>
+      <div id="analytics-content"></div>
     </main>
 
     <!-- Settings View -->
