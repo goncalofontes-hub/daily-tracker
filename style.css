@@ -4,7 +4,8 @@
   box-sizing: border-box;
 }
 
-:root {
+:root,
+[data-theme="dark"] {
   --bg: #0f0f1a;
   --surface: #1a1a2e;
   --surface2: #222240;
@@ -18,6 +19,26 @@
   --text-muted: #555;
   --radius: 12px;
   --shadow: 0 2px 12px rgba(0,0,0,0.3);
+  --input-bg: #222240;
+  --input-border: #555;
+}
+
+[data-theme="light"] {
+  --bg: #f0f2f8;
+  --surface: #ffffff;
+  --surface2: #e8eaf2;
+  --primary: #6c63ff;
+  --primary-light: #5a52e0;
+  --accent: #e05252;
+  --success: #1aab99;
+  --warning: #d4860a;
+  --text: #1a1a2e;
+  --text-dim: #5a5a7a;
+  --text-muted: #9090b0;
+  --radius: 12px;
+  --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  --input-bg: #eef0f8;
+  --input-border: #b0b4cc;
 }
 
 html, body {
@@ -201,8 +222,8 @@ body {
 }
 
 .item-text-input {
-  background: var(--surface2);
-  border: 1px solid var(--text-muted);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
   border-radius: 8px;
   color: var(--text);
   font-size: 15px;
@@ -463,8 +484,8 @@ body {
 
 .bp-modal-time-row input[type="time"] {
   flex: 1;
-  background: var(--surface2);
-  border: 1px solid var(--text-muted);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
   border-radius: 8px;
   color: var(--text);
   font-size: 18px;
@@ -553,8 +574,8 @@ body {
 
 .filter-row input[type="date"] {
   flex: 1;
-  background: var(--surface2);
-  border: 1px solid var(--text-muted);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
   border-radius: 6px;
   color: var(--text);
   font-size: 12px;
@@ -832,8 +853,8 @@ body {
 .add-form select,
 .modal-content input,
 .modal-content select {
-  background: var(--surface2);
-  border: 1px solid var(--text-muted);
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
   border-radius: 8px;
   color: var(--text);
   font-size: 15px;
@@ -958,4 +979,112 @@ body {
 .empty-state-text {
   font-size: 14px;
   line-height: 1.5;
+}
+
+/* ── Toggle switch ── */
+.settings-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  font-size: 15px;
+  box-shadow: var(--shadow);
+}
+
+.toggle-switch {
+  position: relative;
+  width: 48px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-knob {
+  position: absolute;
+  inset: 0;
+  background: var(--text-muted);
+  border-radius: 26px;
+  transition: background 0.2s;
+  cursor: pointer;
+}
+
+.toggle-knob::before {
+  content: '';
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  left: 3px;
+  top: 3px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.toggle-switch input:checked + .toggle-knob {
+  background: var(--primary);
+}
+
+.toggle-switch input:checked + .toggle-knob::before {
+  transform: translateX(22px);
+}
+
+/* ── Goal progress bar ── */
+.item-goal-badge {
+  font-size: 10px;
+  color: var(--primary-light);
+  background: rgba(108, 99, 255, 0.12);
+  padding: 2px 7px;
+  border-radius: 10px;
+  margin-left: 4px;
+}
+
+.goal-bar-wrap {
+  height: 6px;
+  background: var(--surface2);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+
+.goal-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--success));
+  border-radius: 3px;
+  transition: width 0.3s ease;
+  min-width: 2px;
+}
+
+.goal-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 3px;
+  text-align: right;
+}
+
+/* ── Reminder settings ── */
+.reminder-time-input {
+  display: block;
+  width: 100%;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 22px;
+  font-weight: 600;
+  padding: 12px 16px;
+  outline: none;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.reminder-time-input:focus {
+  border-color: var(--primary);
 }

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#1a1a2e">
+  <meta id="theme-color-meta" name="theme-color" content="#1a1a2e">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Daily Tracker</title>
@@ -73,6 +73,7 @@
           <option value="text">Text (write a value)</option>
           <option value="bp">Blood Pressure (SYS/DIA/BPM)</option>
         </select>
+        <input type="number" id="new-item-goal" class="hidden" placeholder="Daily goal (e.g. 10000 for steps)" min="1">
         <select id="new-item-schedule">
           <option value="daily">Every day</option>
           <option value="weekly">Once a week</option>
@@ -91,6 +92,31 @@
           <button id="btn-cancel-item" class="btn-secondary">Cancel</button>
         </div>
       </div>
+
+      <hr>
+      <h2>Appearance</h2>
+      <div class="settings-toggle-row">
+        <span>Light theme</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="theme-toggle">
+          <span class="toggle-knob"></span>
+        </label>
+      </div>
+
+      <hr>
+      <h2>Reminders</h2>
+      <div class="settings-toggle-row">
+        <span>Daily reminder</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="reminder-toggle">
+          <span class="toggle-knob"></span>
+        </label>
+      </div>
+      <div id="reminder-time-wrap" class="hidden">
+        <input type="time" id="reminder-time" class="reminder-time-input">
+      </div>
+      <button id="btn-notif-permission" class="btn-secondary hidden">Allow Notifications</button>
+
       <hr>
       <h2>Data</h2>
       <button id="btn-export" class="btn-secondary">Export Data</button>
@@ -151,6 +177,7 @@
         <option value="text">Text</option>
         <option value="bp">Blood Pressure</option>
       </select>
+      <input type="number" id="edit-item-goal" class="hidden" placeholder="Daily goal (optional)" min="1">
       <select id="edit-item-schedule">
         <option value="daily">Every day</option>
         <option value="weekly">Once a week</option>

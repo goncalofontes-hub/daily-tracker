@@ -2,10 +2,12 @@
   'use strict';
 
   // ── Constants ──
-  const STORAGE_ITEMS = 'dt_items';
-  const STORAGE_ENTRIES = 'dt_entries';
+  const STORAGE_ITEMS    = 'dt_items';
+  const STORAGE_ENTRIES  = 'dt_entries';
+  const STORAGE_THEME    = 'dt_theme';
+  const STORAGE_REMINDER = 'dt_reminder';
   const WEEKDAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const MONTHS   = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
   // ── State ──
   let items = [];
@@ -17,33 +19,28 @@
   let analyticsPeriodDays = 30;
 
   // ── Helpers ──
-  function todayStr() {
-    return formatDate(new Date());
-  }
+  function todayStr() { return formatDate(new Date()); }
 
   function formatDate(d) {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return y + '-' + m + '-' + day;
+    return d.getFullYear() + '-' +
+      String(d.getMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getDate()).padStart(2, '0');
   }
 
   function parseDate(str) {
-    const parts = str.split('-');
-    return new Date(+parts[0], +parts[1] - 1, +parts[2]);
+    var p = str.split('-');
+    return new Date(+p[0], +p[1] - 1, +p[2]);
   }
 
-  function dayOfWeek(dateStr) {
-    return parseDate(dateStr).getDay();
-  }
+  function dayOfWeek(dateStr) { return parseDate(dateStr).getDay(); }
 
   function prettyDate(dateStr) {
-    const d = parseDate(dateStr);
+    var d = parseDate(dateStr);
     return WEEKDAYS[d.getDay()] + ', ' + d.getDate() + ' ' + MONTHS[d.getMonth()] + ' ' + d.getFullYear();
   }
 
   function addDays(dateStr, n) {
-    const d = parseDate(dateStr);
+    var d = parseDate(dateStr);
     d.setDate(d.getDate() + n);
     return formatDate(d);
   }
@@ -58,23 +55,22 @@
     return div.innerHTML;
   }
 
-  // ── Storage ──
-  function saveItems() {
-    localStorage.setItem(STORAGE_ITEMS, JSON.stringify(items));
+  function formatNumber(n) {
+    return n.toLocaleString();
   }
 
-  function saveEntries() {
-    localStorage.setItem(STORAGE_ENTRIES, JSON.stringify(entries));
-  }
+  // ── Storage ──
+  function saveItems()   { localStorage.setItem(STORAGE_ITEMS,   JSON.stringify(items));   }
+  function saveEntries() { localStorage.setItem(STORAGE_ENTRIES, JSON.stringify(entries)); }
 
   function loadData() {
     try {
-      const savedItems = localStorage.getItem(STORAGE_ITEMS);
-      items = savedItems ? JSON.parse(savedItems) : getDefaultItems();
-      if (!savedItems) saveItems();
+      var si = localStorage.getItem(STORAGE_ITEMS);
+      items = si ? JSON.parse(si) : getDefaultItems();
+      if (!si) saveItems();
 
-      const savedEntries = localStorage.getItem(STORAGE_ENTRIES);
-      entries = savedEntries ? JSON.parse(savedEntries) : {};
+      var se = localStorage.getItem(STORAGE_ENTRIES);
+      entries = se ? JSON.parse(se) : {};
     } catch (e) {
       items = getDefaultItems();
       entries = {};
@@ -85,30 +81,27 @@
 
   function getDefaultItems() {
     return [
-      { id: generateId(), name: 'Supplementation', type: 'checkbox', schedule: 'daily',  weekDay: null, order: 0 },
-      { id: generateId(), name: 'Fasting',          type: 'checkbox', schedule: 'daily',  weekDay: null, order: 1 },
-      { id: generateId(), name: 'Treadmill walking',type: 'checkbox', schedule: 'daily',  weekDay: null, order: 2 },
-      { id: generateId(), name: 'Night walk',        type: 'checkbox', schedule: 'daily',  weekDay: null, order: 3 },
-      { id: generateId(), name: '3L of water',       type: 'checkbox', schedule: 'daily',  weekDay: null, order: 4 },
-      { id: generateId(), name: 'Tension',           type: 'bp',       schedule: 'daily',  weekDay: null, order: 5 },
-      { id: generateId(), name: 'Steps',             type: 'text',     schedule: 'daily',  weekDay: null, order: 6 },
-      { id: generateId(), name: 'Weight',            type: 'text',     schedule: 'weekly', weekDay: 6,    order: 7 },
+      { id: generateId(), name: 'Supplementation',  type: 'checkbox', schedule: 'daily',  weekDay: null, order: 0, goal: null },
+      { id: generateId(), name: 'Fasting',           type: 'checkbox', schedule: 'daily',  weekDay: null, order: 1, goal: null },
+      { id: generateId(), name: 'Treadmill walking', type: 'checkbox', schedule: 'daily',  weekDay: null, order: 2, goal: null },
+      { id: generateId(), name: 'Night walk',        type: 'checkbox', schedule: 'daily',  weekDay: null, order: 3, goal: null },
+      { id: generateId(), name: '3L of water',       type: 'checkbox', schedule: 'daily',  weekDay: null, order: 4, goal: null },
+      { id: generateId(), name: 'Tension',           type: 'bp',       schedule: 'daily',  weekDay: null, order: 5, goal: null },
+      { id: generateId(), name: 'Steps',             type: 'text',     schedule: 'daily',  weekDay: null, order: 6, goal: 10000 },
+      { id: generateId(), name: 'Weight',            type: 'text',     schedule: 'weekly', weekDay: 6,    order: 7, goal: null },
     ];
   }
 
   // ── Item helpers ──
   function getItemsForDate(dateStr) {
-    const dow = dayOfWeek(dateStr);
+    var dow = dayOfWeek(dateStr);
     return items.filter(function (item) {
       if (item.schedule === 'daily') return true;
-      if (item.schedule === 'weekly' && item.weekDay === dow) return true;
-      return false;
+      return item.schedule === 'weekly' && item.weekDay === dow;
     });
   }
 
-  function getEntry(dateStr) {
-    return entries[dateStr] || {};
-  }
+  function getEntry(dateStr)  { return entries[dateStr] || {}; }
 
   function setEntryValue(dateStr, itemId, value) {
     if (!entries[dateStr]) entries[dateStr] = {};
@@ -117,7 +110,6 @@
   }
 
   // ── BP helpers ──
-  // Data: array of sessions → [{time: "HH:MM", readings: [{sys,dia,bpm}, ...]}, ...]
   function getBpSessions(dateStr, itemId) {
     var val = getEntry(dateStr)[itemId];
     return Array.isArray(val) ? val : [];
@@ -127,11 +119,115 @@
     setEntryValue(dateStr, itemId, sessions);
   }
 
+  // ── Theme ──
+  function loadTheme() {
+    var theme = localStorage.getItem(STORAGE_THEME) || 'dark';
+    applyTheme(theme);
+    document.getElementById('theme-toggle').checked = theme === 'light';
+  }
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.getElementById('theme-color-meta').setAttribute(
+      'content', theme === 'light' ? '#f4f6fb' : '#1a1a2e'
+    );
+    localStorage.setItem(STORAGE_THEME, theme);
+  }
+
+  // ── Reminders ──
+  function loadReminderSettings() {
+    try { return JSON.parse(localStorage.getItem(STORAGE_REMINDER)) || { enabled: false, time: '21:00' }; }
+    catch (e) { return { enabled: false, time: '21:00' }; }
+  }
+
+  function saveReminderSettings(settings) {
+    localStorage.setItem(STORAGE_REMINDER, JSON.stringify(settings));
+  }
+
+  function scheduleReminder(time) {
+    if (!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.ready.then(function (reg) {
+      if (reg.active) reg.active.postMessage({ type: 'SCHEDULE_REMINDER', time: time });
+    });
+  }
+
+  function cancelReminder() {
+    if (!('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.ready.then(function (reg) {
+      if (reg.active) reg.active.postMessage({ type: 'CANCEL_REMINDER' });
+    });
+  }
+
+  function initReminderUI() {
+    var settings = loadReminderSettings();
+    var toggle   = document.getElementById('reminder-toggle');
+    var timeWrap = document.getElementById('reminder-time-wrap');
+    var timeInput = document.getElementById('reminder-time');
+    var permBtn  = document.getElementById('btn-notif-permission');
+
+    toggle.checked = settings.enabled;
+    timeInput.value = settings.time || '21:00';
+    timeWrap.classList.toggle('hidden', !settings.enabled);
+
+    // Show permission button if needed
+    if (settings.enabled && Notification.permission === 'default') {
+      permBtn.classList.remove('hidden');
+    }
+
+    toggle.addEventListener('change', function () {
+      settings.enabled = toggle.checked;
+      saveReminderSettings(settings);
+      timeWrap.classList.toggle('hidden', !settings.enabled);
+
+      if (settings.enabled) {
+        if (Notification.permission === 'granted') {
+          scheduleReminder(settings.time);
+          permBtn.classList.add('hidden');
+        } else if (Notification.permission === 'default') {
+          permBtn.classList.remove('hidden');
+        } else {
+          // denied
+          toggle.checked = false;
+          settings.enabled = false;
+          saveReminderSettings(settings);
+          alert('Notifications are blocked. Please enable them in your browser/phone settings.');
+        }
+      } else {
+        cancelReminder();
+        permBtn.classList.add('hidden');
+      }
+    });
+
+    timeInput.addEventListener('change', function () {
+      settings.time = timeInput.value;
+      saveReminderSettings(settings);
+      if (settings.enabled && Notification.permission === 'granted') {
+        scheduleReminder(settings.time);
+      }
+    });
+
+    permBtn.addEventListener('click', function () {
+      Notification.requestPermission().then(function (permission) {
+        if (permission === 'granted') {
+          permBtn.classList.add('hidden');
+          scheduleReminder(settings.time);
+        } else {
+          alert('Notifications permission denied. You can change this in your browser settings.');
+        }
+      });
+    });
+
+    // Auto-schedule on startup if already granted and enabled
+    if (settings.enabled && Notification.permission === 'granted') {
+      scheduleReminder(settings.time);
+    }
+  }
+
   // ── Streak ──
   function getCompletionForDate(dateStr) {
     var dayItems = getItemsForDate(dateStr);
     var checkboxItems = dayItems.filter(function (i) { return i.type === 'checkbox'; });
-    if (checkboxItems.length === 0) return { done: 0, total: 0, complete: true };
+    if (!checkboxItems.length) return { done: 0, total: 0, complete: true };
     var entry = getEntry(dateStr);
     var done = checkboxItems.filter(function (i) { return entry[i.id] === true; }).length;
     return { done: done, total: checkboxItems.length, complete: done === checkboxItems.length };
@@ -141,10 +237,10 @@
     var streak = 0;
     var date = todayStr();
     var todayComp = getCompletionForDate(date);
-    if (!todayComp.complete || todayComp.total === 0) date = addDays(date, -1);
+    if (!todayComp.complete || !todayComp.total) date = addDays(date, -1);
     for (var i = 0; i < 9999; i++) {
       var comp = getCompletionForDate(date);
-      if (comp.total === 0) { date = addDays(date, -1); continue; }
+      if (!comp.total) { date = addDays(date, -1); continue; }
       if (comp.complete) { streak++; date = addDays(date, -1); }
       else break;
     }
@@ -169,7 +265,7 @@
     var dayItems = getItemsForDate(currentDate);
     var entry = getEntry(currentDate);
 
-    if (dayItems.length === 0) {
+    if (!dayItems.length) {
       container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-text">No items for this day.<br>Add items in Settings.</div></div>';
       document.getElementById('day-streak').innerHTML = '';
       return;
@@ -177,6 +273,7 @@
 
     var html = '';
     dayItems.forEach(function (item) {
+
       if (item.type === 'checkbox') {
         var checked = entry[item.id] === true;
         html += '<div class="checklist-item' + (checked ? ' completed' : '') + '" data-id="' + item.id + '" data-type="checkbox">';
@@ -210,13 +307,25 @@
         html += '</div></div>';
 
       } else {
+        // text item — with optional goal progress bar
         var val = entry[item.id] || '';
+        var numVal = parseFloat(val);
+        var hasGoal = item.goal && !isNaN(numVal) && numVal > 0;
+        var pct = hasGoal ? Math.min(Math.round((numVal / item.goal) * 100), 100) : 0;
+
         html += '<div class="checklist-item" data-id="' + item.id + '" data-type="text">';
         html += '<div class="text-input-wrapper">';
         html += '<div class="item-name">' + escapeHtml(item.name);
         if (item.schedule === 'weekly') html += ' <span class="item-schedule-badge">' + WEEKDAYS[item.weekDay].slice(0, 3) + '</span>';
+        if (item.goal) html += ' <span class="item-goal-badge">goal: ' + formatNumber(item.goal) + '</span>';
         html += '</div>';
-        html += '<input type="text" class="item-text-input' + (val ? ' has-value' : '') + '" value="' + escapeHtml(val) + '" placeholder="Enter ' + escapeHtml(item.name.toLowerCase()) + '...">';
+        html += '<input type="text" inputmode="numeric" class="item-text-input' + (val ? ' has-value' : '') + '" value="' + escapeHtml(val) + '" placeholder="Enter ' + escapeHtml(item.name.toLowerCase()) + '...">';
+        if (item.goal) {
+          html += '<div class="goal-bar-wrap">';
+          html += '<div class="goal-bar" style="width:' + pct + '%"></div>';
+          html += '</div>';
+          html += '<div class="goal-label">' + (val ? formatNumber(numVal) + ' / ' + formatNumber(item.goal) + ' (' + pct + '%)' : '0 / ' + formatNumber(item.goal)) + '</div>';
+        }
         html += '</div></div>';
       }
     });
@@ -225,8 +334,7 @@
     // Checkbox clicks
     container.querySelectorAll('[data-type="checkbox"]').forEach(function (el) {
       el.addEventListener('click', function () {
-        var id = el.getAttribute('data-id');
-        setEntryValue(currentDate, id, !getEntry(currentDate)[id]);
+        setEntryValue(currentDate, el.getAttribute('data-id'), !getEntry(currentDate)[el.getAttribute('data-id')]);
         renderChecklist();
       });
     });
@@ -237,10 +345,21 @@
       input.addEventListener('input', function () {
         setEntryValue(currentDate, id, input.value);
         input.classList.toggle('has-value', input.value.length > 0);
+        // Live-update goal bar without full re-render
+        var item = items.find(function (i) { return i.id === id; });
+        if (item && item.goal) {
+          var wrap = input.closest('.checklist-item');
+          var bar = wrap.querySelector('.goal-bar');
+          var label = wrap.querySelector('.goal-label');
+          var n = parseFloat(input.value);
+          var p = (!isNaN(n) && n > 0) ? Math.min(Math.round((n / item.goal) * 100), 100) : 0;
+          if (bar) bar.style.width = p + '%';
+          if (label) label.textContent = (!isNaN(n) && n > 0) ? formatNumber(n) + ' / ' + formatNumber(item.goal) + ' (' + p + '%)' : '0 / ' + formatNumber(item.goal);
+        }
       });
     });
 
-    // BP delete session
+    // BP delete
     container.querySelectorAll('[data-type="bp"]').forEach(function (el) {
       var id = el.getAttribute('data-id');
       el.querySelectorAll('.bp-delete-btn').forEach(function (btn) {
@@ -264,29 +383,24 @@
 
     // Streak
     var streak = getCurrentStreak();
-    var streakEl = document.getElementById('day-streak');
-    if (streak > 0) {
-      streakEl.innerHTML = '<span class="streak-count">' + streak + '</span> day streak 🔥';
-    } else {
-      streakEl.innerHTML = 'Complete all items to start a streak!';
-    }
+    document.getElementById('day-streak').innerHTML = streak > 0
+      ? '<span class="streak-count">' + streak + '</span> day streak 🔥'
+      : 'Complete all items to start a streak!';
   }
 
   // ── Render: History ──
   function renderHistory() {
     var container = document.getElementById('history-list');
     var fromVal = document.getElementById('filter-from').value;
-    var toVal = document.getElementById('filter-to').value;
+    var toVal   = document.getElementById('filter-to').value;
 
-    var allDates = Object.keys(entries).sort().reverse();
-
-    var filtered = allDates.filter(function (d) {
+    var filtered = Object.keys(entries).sort().reverse().filter(function (d) {
       if (fromVal && d < fromVal) return false;
-      if (toVal && d > toVal) return false;
+      if (toVal   && d > toVal)   return false;
       return true;
     });
 
-    if (filtered.length === 0) {
+    if (!filtered.length) {
       container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📅</div><div class="empty-state-text">No entries in this range.</div></div>';
       return;
     }
@@ -303,9 +417,9 @@
         if (i.type === 'bp') return Array.isArray(v) && v.length > 0;
         return v !== undefined && v !== null && v !== '';
       }).length;
-      var totalTasks = comp.total + fillable.length;
-      var doneTasks = comp.done + fillableDone;
-      var pct = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+      var total = comp.total + fillable.length;
+      var done = comp.done + fillableDone;
+      var pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
       html += '<div class="history-day">';
       html += '<div class="history-day-header" data-date="' + dateStr + '">';
@@ -321,7 +435,7 @@
           html += '<span class="history-detail-value ' + (val ? 'done' : 'missed') + '">' + (val ? '✓' : '✗') + '</span>';
         } else if (item.type === 'bp') {
           var sessions = Array.isArray(val) ? val : [];
-          if (sessions.length === 0) {
+          if (!sessions.length) {
             html += '<span class="history-detail-value missed">—</span>';
           } else {
             html += '<span class="history-bp-sessions">';
@@ -344,11 +458,9 @@
     });
 
     container.innerHTML = html;
-
-    container.querySelectorAll('.history-day-header').forEach(function (header) {
-      header.addEventListener('click', function () {
-        var details = document.getElementById('hist-' + header.getAttribute('data-date'));
-        details.classList.toggle('open');
+    container.querySelectorAll('.history-day-header').forEach(function (h) {
+      h.addEventListener('click', function () {
+        document.getElementById('hist-' + h.getAttribute('data-date')).classList.toggle('open');
       });
     });
   }
@@ -358,37 +470,29 @@
     var container = document.getElementById('analytics-content');
     var today = todayStr();
     var fromDate = analyticsPeriodDays > 0 ? addDays(today, -analyticsPeriodDays + 1) : null;
+    var rangeDates = Object.keys(entries).sort().filter(function (d) { return !fromDate || d >= fromDate; });
 
-    // Collect dates in range that have entries
-    var allDates = Object.keys(entries).sort();
-    var rangeDates = allDates.filter(function (d) {
-      return !fromDate || d >= fromDate;
-    });
-
-    if (rangeDates.length === 0) {
+    if (!rangeDates.length) {
       container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><div class="empty-state-text">No data yet for this period.</div></div>';
       return;
     }
 
     var html = '';
 
-    // ── Checkbox completion rates ──
+    // ── Habits ──
     var checkboxItems = items.filter(function (i) { return i.type === 'checkbox'; });
-    if (checkboxItems.length > 0) {
-      html += '<div class="analytics-section">';
-      html += '<div class="analytics-title">Habits</div>';
+    if (checkboxItems.length) {
+      html += '<div class="analytics-section"><div class="analytics-title">Habits</div>';
       checkboxItems.forEach(function (item) {
         var applicable = rangeDates.filter(function (d) {
           return getItemsForDate(d).some(function (i) { return i.id === item.id; });
         });
-        if (applicable.length === 0) return;
+        if (!applicable.length) return;
         var done = applicable.filter(function (d) { return getEntry(d)[item.id] === true; }).length;
         var pct = Math.round((done / applicable.length) * 100);
         html += '<div class="analytics-row">';
         html += '<span class="analytics-label">' + escapeHtml(item.name) + '</span>';
-        html += '<div class="analytics-bar-wrap">';
-        html += '<div class="analytics-bar" style="width:' + pct + '%"></div>';
-        html += '</div>';
+        html += '<div class="analytics-bar-wrap"><div class="analytics-bar" style="width:' + pct + '%"></div></div>';
         html += '<span class="analytics-pct">' + pct + '%</span>';
         html += '</div>';
       });
@@ -396,98 +500,78 @@
     }
 
     // ── Steps ──
-    var stepsItem = items.find(function (i) { return i.name.toLowerCase().indexOf('step') !== -1 && i.type === 'text'; });
+    var stepsItem = items.find(function (i) { return i.type === 'text' && i.goal > 0; });
     if (stepsItem) {
       var stepValues = [];
       rangeDates.forEach(function (d) {
-        var v = getEntry(d)[stepsItem.id];
-        var n = parseInt(v);
+        var n = parseFloat(getEntry(d)[stepsItem.id]);
         if (!isNaN(n) && n > 0) stepValues.push({ date: d, value: n });
       });
-      if (stepValues.length > 0) {
+      if (stepValues.length) {
         var total = stepValues.reduce(function (a, v) { return a + v.value; }, 0);
         var avg = Math.round(total / stepValues.length);
         var best = stepValues.reduce(function (a, v) { return v.value > a.value ? v : a; });
-        html += '<div class="analytics-section">';
-        html += '<div class="analytics-title">Steps</div>';
+        var goalPct = Math.min(Math.round((avg / stepsItem.goal) * 100), 100);
+        html += '<div class="analytics-section"><div class="analytics-title">' + escapeHtml(stepsItem.name) + ' — goal ' + formatNumber(stepsItem.goal) + '</div>';
         html += '<div class="analytics-stats">';
-        html += '<div class="stat-card"><div class="stat-value">' + avg.toLocaleString() + '</div><div class="stat-label">Avg / day</div></div>';
-        html += '<div class="stat-card"><div class="stat-value">' + total.toLocaleString() + '</div><div class="stat-label">Total</div></div>';
-        html += '<div class="stat-card"><div class="stat-value">' + best.value.toLocaleString() + '</div><div class="stat-label">Best day</div></div>';
-        html += '</div></div>';
+        html += '<div class="stat-card"><div class="stat-value">' + formatNumber(avg) + '</div><div class="stat-label">Avg / day</div></div>';
+        html += '<div class="stat-card"><div class="stat-value">' + formatNumber(Math.round(total)) + '</div><div class="stat-label">Total</div></div>';
+        html += '<div class="stat-card"><div class="stat-value">' + formatNumber(best.value) + '</div><div class="stat-label">Best day</div></div>';
+        html += '</div>';
+        html += '<div style="margin-top:10px"><div class="analytics-bar-wrap" style="height:10px;border-radius:5px"><div class="analytics-bar" style="width:' + goalPct + '%"></div></div>';
+        html += '<div style="font-size:12px;color:var(--text-dim);margin-top:4px;text-align:right">Avg vs goal: ' + goalPct + '%</div></div>';
+        html += '</div>';
       }
     }
 
     // ── Tension ──
     var bpItem = items.find(function (i) { return i.type === 'bp'; });
     if (bpItem) {
-      // Group sessions by approximate time slot: morning (before 14h) vs evening (14h+)
-      var morningReadings = [], eveningReadings = [];
+      var morningR = [], eveningR = [];
       rangeDates.forEach(function (d) {
-        var sessions = getBpSessions(d, bpItem.id);
-        sessions.forEach(function (s) {
+        getBpSessions(d, bpItem.id).forEach(function (s) {
           var hour = parseInt((s.time || '00:00').split(':')[0]);
           s.readings.forEach(function (r) {
-            if (hour < 14) morningReadings.push(r);
-            else eveningReadings.push(r);
+            (hour < 14 ? morningR : eveningR).push(r);
           });
         });
       });
 
-      function avgReadings(arr) {
+      function avgR(arr) {
         if (!arr.length) return null;
         var sum = arr.reduce(function (a, r) { return { sys: a.sys + r.sys, dia: a.dia + r.dia, bpm: a.bpm + r.bpm }; }, { sys: 0, dia: 0, bpm: 0 });
         return { sys: Math.round(sum.sys / arr.length), dia: Math.round(sum.dia / arr.length), bpm: Math.round(sum.bpm / arr.length) };
       }
 
-      var mAvg = avgReadings(morningReadings);
-      var eAvg = avgReadings(eveningReadings);
-
-      if (mAvg || eAvg) {
-        html += '<div class="analytics-section">';
-        html += '<div class="analytics-title">Tension (avg)</div>';
+      var mA = avgR(morningR), eA = avgR(eveningR);
+      if (mA || eA) {
+        html += '<div class="analytics-section"><div class="analytics-title">Tension (avg)</div>';
         html += '<div class="analytics-bp-grid">';
-        if (mAvg) {
+        [{ label: 'Morning', avg: mA, count: morningR.length }, { label: 'Evening', avg: eA, count: eveningR.length }].forEach(function (slot) {
+          if (!slot.avg) return;
           html += '<div class="analytics-bp-card">';
-          html += '<div class="analytics-bp-slot">Morning</div>';
-          html += '<div class="analytics-bp-values">';
-          html += '<span class="bp-sys">' + mAvg.sys + '</span><span class="bp-sep">/</span><span class="bp-dia">' + mAvg.dia + '</span>';
+          html += '<div class="analytics-bp-slot">' + slot.label + '</div>';
+          html += '<div class="analytics-bp-values"><span class="bp-sys">' + slot.avg.sys + '</span><span class="bp-sep">/</span><span class="bp-dia">' + slot.avg.dia + '</span></div>';
+          html += '<div class="analytics-bp-bpm"><span class="bp-bpm">' + slot.avg.bpm + '</span> <span class="bp-unit">bpm</span></div>';
+          html += '<div class="analytics-bp-count">' + slot.count + ' readings</div>';
           html += '</div>';
-          html += '<div class="analytics-bp-bpm"><span class="bp-bpm">' + mAvg.bpm + '</span> <span class="bp-unit">bpm</span></div>';
-          html += '<div class="analytics-bp-count">' + morningReadings.length + ' readings</div>';
-          html += '</div>';
-        }
-        if (eAvg) {
-          html += '<div class="analytics-bp-card">';
-          html += '<div class="analytics-bp-slot">Evening</div>';
-          html += '<div class="analytics-bp-values">';
-          html += '<span class="bp-sys">' + eAvg.sys + '</span><span class="bp-sep">/</span><span class="bp-dia">' + eAvg.dia + '</span>';
-          html += '</div>';
-          html += '<div class="analytics-bp-bpm"><span class="bp-bpm">' + eAvg.bpm + '</span> <span class="bp-unit">bpm</span></div>';
-          html += '<div class="analytics-bp-count">' + eveningReadings.length + ' readings</div>';
-          html += '</div>';
-        }
+        });
         html += '</div></div>';
       }
     }
 
     // ── Weight ──
-    var weightItem = items.find(function (i) { return i.name.toLowerCase().indexOf('weight') !== -1 && i.type === 'text'; });
+    var weightItem = items.find(function (i) { return i.type === 'text' && i.name.toLowerCase().indexOf('weight') !== -1; });
     if (weightItem) {
-      var weightEntries = [];
+      var weights = [];
       rangeDates.forEach(function (d) {
         var v = getEntry(d)[weightItem.id];
-        if (v !== undefined && v !== null && v !== '') weightEntries.push({ date: d, value: v });
+        if (v !== undefined && v !== null && v !== '') weights.push({ date: d, value: v });
       });
-      if (weightEntries.length > 0) {
-        html += '<div class="analytics-section">';
-        html += '<div class="analytics-title">Weight</div>';
-        html += '<div class="analytics-weight-list">';
-        weightEntries.slice(-8).reverse().forEach(function (w) {
-          html += '<div class="analytics-weight-row">';
-          html += '<span class="analytics-weight-date">' + prettyDate(w.date) + '</span>';
-          html += '<span class="analytics-weight-val">' + escapeHtml(w.value) + '</span>';
-          html += '</div>';
+      if (weights.length) {
+        html += '<div class="analytics-section"><div class="analytics-title">Weight</div><div class="analytics-weight-list">';
+        weights.slice(-8).reverse().forEach(function (w) {
+          html += '<div class="analytics-weight-row"><span class="analytics-weight-date">' + prettyDate(w.date) + '</span><span class="analytics-weight-val">' + escapeHtml(w.value) + '</span></div>';
         });
         html += '</div></div>';
       }
@@ -499,26 +583,22 @@
   // ── Render: Settings ──
   function renderSettings() {
     var container = document.getElementById('settings-items');
-    var html = '';
-
     items.sort(function (a, b) { return a.order - b.order; });
-
+    var html = '';
     items.forEach(function (item, idx) {
       var typeLabel = item.type === 'checkbox' ? 'Checkbox' : item.type === 'bp' ? 'Blood Pressure' : 'Text';
-      var scheduleLabel = item.schedule === 'daily' ? 'Daily' : WEEKDAYS[item.weekDay] + 's only';
-
-      html += '<div class="settings-item" data-id="' + item.id + '">';
+      var schedLabel = item.schedule === 'daily' ? 'Daily' : WEEKDAYS[item.weekDay] + 's only';
+      var goalLabel = (item.goal && item.type === 'text') ? ' · Goal: ' + formatNumber(item.goal) : '';
+      html += '<div class="settings-item">';
       html += '<div class="settings-item-info">';
       html += '<div class="settings-item-name">' + escapeHtml(item.name) + '</div>';
-      html += '<div class="settings-item-meta">' + typeLabel + ' · ' + scheduleLabel + '</div>';
-      html += '</div>';
-      html += '<div class="settings-item-actions">';
+      html += '<div class="settings-item-meta">' + typeLabel + ' · ' + schedLabel + goalLabel + '</div>';
+      html += '</div><div class="settings-item-actions">';
       if (idx > 0) html += '<button class="btn-icon btn-move-up" data-id="' + item.id + '">↑</button>';
       if (idx < items.length - 1) html += '<button class="btn-icon btn-move-down" data-id="' + item.id + '">↓</button>';
       html += '<button class="btn-icon btn-edit" data-id="' + item.id + '">✎</button>';
       html += '</div></div>';
     });
-
     container.innerHTML = html;
 
     container.querySelectorAll('.btn-move-up').forEach(function (btn) {
@@ -532,12 +612,11 @@
     });
   }
 
-  function moveItem(itemId, direction) {
+  function moveItem(itemId, dir) {
     var idx = items.findIndex(function (i) { return i.id === itemId; });
-    if (idx < 0) return;
-    var newIdx = idx + direction;
+    var newIdx = idx + dir;
     if (newIdx < 0 || newIdx >= items.length) return;
-    var temp = items[idx]; items[idx] = items[newIdx]; items[newIdx] = temp;
+    var tmp = items[idx]; items[idx] = items[newIdx]; items[newIdx] = tmp;
     items.forEach(function (item, i) { item.order = i; });
     saveItems();
     renderSettings();
@@ -551,6 +630,9 @@
     document.getElementById('edit-item-name').value = item.name;
     document.getElementById('edit-item-type').value = item.type;
     document.getElementById('edit-item-schedule').value = item.schedule;
+    var goalInput = document.getElementById('edit-item-goal');
+    goalInput.classList.toggle('hidden', item.type !== 'text');
+    goalInput.value = item.goal || '';
     var weekdaySelect = document.getElementById('edit-item-weekday');
     weekdaySelect.classList.toggle('hidden', item.schedule !== 'weekly');
     if (item.schedule === 'weekly') weekdaySelect.value = item.weekDay !== null ? item.weekDay : 6;
@@ -569,16 +651,15 @@
     var now = new Date();
     document.getElementById('bp-session-time').value =
       String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
-    ['bp-r1-sys','bp-r1-dia','bp-r1-bpm','bp-r2-sys','bp-r2-dia','bp-r2-bpm','bp-r3-sys','bp-r3-dia','bp-r3-bpm'].forEach(function (cls) {
-      document.querySelector('.' + cls).value = '';
+    ['bp-r1-sys','bp-r1-dia','bp-r1-bpm','bp-r2-sys','bp-r2-dia','bp-r2-bpm','bp-r3-sys','bp-r3-dia','bp-r3-bpm'].forEach(function (c) {
+      document.querySelector('.' + c).value = '';
     });
     document.getElementById('modal-bp').classList.remove('hidden');
     setTimeout(function () { document.querySelector('.bp-r1-sys').focus(); }, 100);
   }
 
   function closeBpModal() {
-    bpActiveItemId = null;
-    bpActiveDate = null;
+    bpActiveItemId = null; bpActiveDate = null;
     document.getElementById('modal-bp').classList.add('hidden');
   }
 
@@ -593,18 +674,15 @@
     if (tabName === 'checklist')  renderChecklist();
     if (tabName === 'history')    renderHistory();
     if (tabName === 'analytics')  renderAnalytics();
-    if (tabName === 'settings')   renderSettings();
+    if (tabName === 'settings')   { renderSettings(); initReminderUI(); }
   }
 
   // ── Export / Import ──
   function exportData() {
-    var data = { items: items, entries: entries, exportDate: new Date().toISOString() };
-    var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    var blob = new Blob([JSON.stringify({ items: items, entries: entries, exportDate: new Date().toISOString() }, null, 2)], { type: 'application/json' });
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
-    a.href = url;
-    a.download = 'daily-tracker-backup-' + todayStr() + '.json';
-    a.click();
+    a.href = url; a.download = 'daily-tracker-backup-' + todayStr() + '.json'; a.click();
     URL.revokeObjectURL(url);
   }
 
@@ -614,33 +692,23 @@
       try {
         var data = JSON.parse(e.target.result);
         if (data.items && data.entries) {
-          items = data.items;
-          entries = data.entries;
-          saveItems();
-          saveEntries();
-          renderAll();
+          items = data.items; entries = data.entries;
+          saveItems(); saveEntries(); renderAll();
           alert('Data imported successfully!');
-        } else {
-          alert('Invalid backup file.');
-        }
-      } catch (err) {
-        alert('Error reading file: ' + err.message);
-      }
+        } else { alert('Invalid backup file.'); }
+      } catch (err) { alert('Error: ' + err.message); }
     };
     reader.readAsText(file);
   }
 
-  function renderAll() {
-    renderHeader();
-    renderChecklist();
-  }
+  function renderAll() { renderHeader(); renderChecklist(); }
 
   // ── Init ──
   function init() {
     loadData();
+    loadTheme();
 
-    // Set default history filter: last 30 days to today
-    document.getElementById('filter-to').value = todayStr();
+    document.getElementById('filter-to').value   = todayStr();
     document.getElementById('filter-from').value = addDays(todayStr(), -29);
 
     renderAll();
@@ -650,20 +718,24 @@
       tab.addEventListener('click', function () { switchTab(tab.getAttribute('data-tab')); });
     });
 
-    // Date navigation
+    // Date nav
     document.getElementById('btn-prev').addEventListener('click', function () {
-      currentDate = addDays(currentDate, -1);
-      renderAll();
+      currentDate = addDays(currentDate, -1); renderAll();
     });
     document.getElementById('btn-next').addEventListener('click', function () {
       if (currentDate < todayStr()) { currentDate = addDays(currentDate, 1); renderAll(); }
+    });
+
+    // Theme toggle
+    document.getElementById('theme-toggle').addEventListener('change', function () {
+      applyTheme(this.checked ? 'light' : 'dark');
     });
 
     // History filter
     document.getElementById('filter-from').addEventListener('change', renderHistory);
     document.getElementById('filter-to').addEventListener('change', renderHistory);
 
-    // Analytics period buttons
+    // Analytics period
     document.querySelectorAll('.period-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
         document.querySelectorAll('.period-btn').forEach(function (b) { b.classList.remove('active'); });
@@ -679,6 +751,9 @@
       addForm.classList.toggle('hidden');
       if (!addForm.classList.contains('hidden')) document.getElementById('new-item-name').focus();
     });
+    document.getElementById('new-item-type').addEventListener('change', function () {
+      document.getElementById('new-item-goal').classList.toggle('hidden', this.value !== 'text');
+    });
     document.getElementById('new-item-schedule').addEventListener('change', function () {
       document.getElementById('new-item-weekday').classList.toggle('hidden', this.value !== 'weekly');
     });
@@ -692,34 +767,35 @@
       var type = document.getElementById('new-item-type').value;
       var schedule = document.getElementById('new-item-schedule').value;
       var weekDay = schedule === 'weekly' ? parseInt(document.getElementById('new-item-weekday').value) : null;
-      items.push({ id: generateId(), name: name, type: type, schedule: schedule, weekDay: weekDay, order: items.length });
+      var goalVal = parseInt(document.getElementById('new-item-goal').value);
+      var goal = (type === 'text' && !isNaN(goalVal) && goalVal > 0) ? goalVal : null;
+      items.push({ id: generateId(), name: name, type: type, schedule: schedule, weekDay: weekDay, order: items.length, goal: goal });
       saveItems();
       document.getElementById('new-item-name').value = '';
+      document.getElementById('new-item-goal').value = '';
       addForm.classList.add('hidden');
       renderSettings();
       renderChecklist();
     });
 
-    // BP session modal
+    // BP modal
     document.getElementById('btn-bp-cancel').addEventListener('click', closeBpModal);
-    document.getElementById('modal-bp').addEventListener('click', function (e) {
-      if (e.target === this) closeBpModal();
-    });
+    document.getElementById('modal-bp').addEventListener('click', function (e) { if (e.target === this) closeBpModal(); });
     document.getElementById('btn-bp-save').addEventListener('click', function () {
       if (!bpActiveItemId) return;
       var time = document.getElementById('bp-session-time').value;
       if (!time) { document.getElementById('bp-session-time').focus(); return; }
-      var rowClasses = [
-        { sys: 'bp-r1-sys', dia: 'bp-r1-dia', bpm: 'bp-r1-bpm' },
-        { sys: 'bp-r2-sys', dia: 'bp-r2-dia', bpm: 'bp-r2-bpm' },
-        { sys: 'bp-r3-sys', dia: 'bp-r3-dia', bpm: 'bp-r3-bpm' },
+      var rows = [
+        ['bp-r1-sys','bp-r1-dia','bp-r1-bpm'],
+        ['bp-r2-sys','bp-r2-dia','bp-r2-bpm'],
+        ['bp-r3-sys','bp-r3-dia','bp-r3-bpm'],
       ];
       var readings = [];
-      for (var i = 0; i < rowClasses.length; i++) {
-        var sys = parseInt(document.querySelector('.' + rowClasses[i].sys).value);
-        var dia = parseInt(document.querySelector('.' + rowClasses[i].dia).value);
-        var bpm = parseInt(document.querySelector('.' + rowClasses[i].bpm).value);
-        if (!sys || !dia || !bpm) { document.querySelector('.' + rowClasses[i].sys).focus(); return; }
+      for (var i = 0; i < rows.length; i++) {
+        var sys = parseInt(document.querySelector('.' + rows[i][0]).value);
+        var dia = parseInt(document.querySelector('.' + rows[i][1]).value);
+        var bpm = parseInt(document.querySelector('.' + rows[i][2]).value);
+        if (!sys || !dia || !bpm) { document.querySelector('.' + rows[i][0]).focus(); return; }
         readings.push({ sys: sys, dia: dia, bpm: bpm });
       }
       var sessions = getBpSessions(bpActiveDate, bpActiveItemId);
@@ -730,6 +806,9 @@
     });
 
     // Edit modal
+    document.getElementById('edit-item-type').addEventListener('change', function () {
+      document.getElementById('edit-item-goal').classList.toggle('hidden', this.value !== 'text');
+    });
     document.getElementById('edit-item-schedule').addEventListener('change', function () {
       document.getElementById('edit-item-weekday').classList.toggle('hidden', this.value !== 'weekly');
     });
@@ -743,6 +822,8 @@
       item.type = document.getElementById('edit-item-type').value;
       item.schedule = document.getElementById('edit-item-schedule').value;
       item.weekDay = item.schedule === 'weekly' ? parseInt(document.getElementById('edit-item-weekday').value) : null;
+      var gv = parseInt(document.getElementById('edit-item-goal').value);
+      item.goal = (item.type === 'text' && !isNaN(gv) && gv > 0) ? gv : null;
       saveItems();
       closeEditModal();
       renderSettings();
