@@ -83,6 +83,48 @@
     </main>
   </div>
 
+  <!-- BP Session modal -->
+  <div id="modal-bp" class="modal hidden">
+    <div class="modal-content">
+      <h3>Add BP Session</h3>
+      <div class="bp-modal-time-row">
+        <label for="bp-session-time">Time</label>
+        <input type="time" id="bp-session-time">
+      </div>
+      <div class="bp-modal-readings">
+        <div class="bp-modal-reading-label">3 readings</div>
+        <div class="bp-modal-row">
+          <span class="bp-modal-num">1</span>
+          <input type="number" class="bp-modal-input bp-r1-sys" placeholder="SYS" min="50" max="300">
+          <span class="bp-sep">/</span>
+          <input type="number" class="bp-modal-input bp-r1-dia" placeholder="DIA" min="30" max="200">
+          <span class="bp-sep">·</span>
+          <input type="number" class="bp-modal-input bp-r1-bpm" placeholder="BPM" min="30" max="250">
+        </div>
+        <div class="bp-modal-row">
+          <span class="bp-modal-num">2</span>
+          <input type="number" class="bp-modal-input bp-r2-sys" placeholder="SYS" min="50" max="300">
+          <span class="bp-sep">/</span>
+          <input type="number" class="bp-modal-input bp-r2-dia" placeholder="DIA" min="30" max="200">
+          <span class="bp-sep">·</span>
+          <input type="number" class="bp-modal-input bp-r2-bpm" placeholder="BPM" min="30" max="250">
+        </div>
+        <div class="bp-modal-row">
+          <span class="bp-modal-num">3</span>
+          <input type="number" class="bp-modal-input bp-r3-sys" placeholder="SYS" min="50" max="300">
+          <span class="bp-sep">/</span>
+          <input type="number" class="bp-modal-input bp-r3-dia" placeholder="DIA" min="30" max="200">
+          <span class="bp-sep">·</span>
+          <input type="number" class="bp-modal-input bp-r3-bpm" placeholder="BPM" min="30" max="250">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button id="btn-bp-save" class="btn-primary">Save</button>
+        <button id="btn-bp-cancel" class="btn-secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Edit item modal -->
   <div id="modal-edit" class="modal hidden">
     <div class="modal-content">

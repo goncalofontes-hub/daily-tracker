@@ -131,15 +131,19 @@
   }
 
   // ── BP helpers ──
-  function getBpReadings(dateStr, itemId) {
+  // Data model: array of sessions → [{time: "HH:MM", readings: [{sys,dia,bpm}, ...]}, ...]
+  function getBpSessions(dateStr, itemId) {
     var val = getEntry(dateStr)[itemId];
     if (!Array.isArray(val)) return [];
     return val;
   }
 
-  function saveBpReadings(dateStr, itemId, readings) {
-    setEntryValue(dateStr, itemId, readings);
+  function saveBpSessions(dateStr, itemId, sessions) {
+    setEntryValue(dateStr, itemId, sessions);
   }
+
+  var bpActiveItemId = null;
+  var bpActiveDate = null;
 
   function getCurrentStreak() {
     var streak = 0;
@@ -180,7 +184,7 @@
       var entry = getEntry(dateStr);
       var val = entry[itemId];
       if (item.type === 'checkbox') return val === true;
-      if (item.type === 'bp') return Array.isArray(val) && val.length > 0;
+      if (item.type === 'bp') return Array.isArray(val) && val.length > 0; // val = array of sessions
       return val !== undefined && val !== null && val !== '';
     };
 
@@ -252,7 +256,7 @@
         }
         html += '</div>';
       } else if (item.type === 'bp') {
-        var readings = getBpReadings(currentDate, item.id);
+        var sessions = getBpSessions(currentDate, item.id);
         html += '<div class="checklist-item bp-item" data-id="' + item.id + '" data-type="bp">';
         html += '<div class="bp-wrapper">';
         html += '<div class="bp-header">';
@@ -261,30 +265,31 @@
           html += '<span class="item-schedule-badge">' + WEEKDAYS[item.weekDay].slice(0, 3) + '</span>';
         }
         html += '</div>';
-        // Existing readings
-        readings.forEach(function (r, idx) {
-          html += '<div class="bp-reading-card">';
-          html += '<span class="bp-values">';
-          html += '<span class="bp-sys">' + r.sys + '</span>';
-          html += '<span class="bp-divider">/</span>';
-          html += '<span class="bp-dia">' + r.dia + '</span>';
-          html += '<span class="bp-dot">·</span>';
-          html += '<span class="bp-bpm">' + r.bpm + '</span>';
-          html += '<span class="bp-unit">bpm</span>';
-          html += '</span>';
+        // Existing sessions
+        sessions.forEach(function (session, idx) {
+          html += '<div class="bp-session-card">';
+          html += '<div class="bp-session-header">';
+          html += '<span class="bp-session-time">' + escapeHtml(session.time) + '</span>';
           html += '<button class="bp-delete-btn" data-idx="' + idx + '">×</button>';
           html += '</div>';
-        });
-        // Add new reading form (show if under 3)
-        if (readings.length < 3) {
-          html += '<div class="bp-add-row">';
-          html += '<input type="number" class="bp-input bp-new-sys" placeholder="SYS" min="50" max="300">';
-          html += '<span class="bp-sep">/</span>';
-          html += '<input type="number" class="bp-input bp-new-dia" placeholder="DIA" min="30" max="200">';
-          html += '<span class="bp-sep">·</span>';
-          html += '<input type="number" class="bp-input bp-new-bpm" placeholder="BPM" min="30" max="250">';
-          html += '<button class="bp-add-btn">+</button>';
+          session.readings.forEach(function (r, ri) {
+            html += '<div class="bp-session-row">';
+            html += '<span class="bp-session-num">' + (ri + 1) + '</span>';
+            html += '<span class="bp-sys">' + r.sys + '</span>';
+            html += '<span class="bp-sep">/</span>';
+            html += '<span class="bp-dia">' + r.dia + '</span>';
+            html += '<span class="bp-sep">·</span>';
+            html += '<span class="bp-bpm">' + r.bpm + '</span>';
+            html += '<span class="bp-unit">bpm</span>';
+            html += '</div>';
+          });
           html += '</div>';
+        });
+        // Add session button (max 2 sessions)
+        if (sessions.length < 2) {
+          html += '<button class="bp-add-session-btn" data-id="' + item.id + '">';
+          html += '+ Add Session <span class="bp-count">(' + sessions.length + '/2)</span>';
+          html += '</button>';
         }
         html += '</div></div>';
       } else {
@@ -323,43 +328,27 @@
       });
     });
 
-    // Bind BP add buttons
+    // Bind BP delete session buttons
     container.querySelectorAll('[data-type="bp"]').forEach(function (el) {
       var id = el.getAttribute('data-id');
-
-      // Delete reading
       el.querySelectorAll('.bp-delete-btn').forEach(function (btn) {
         btn.addEventListener('click', function (e) {
           e.stopPropagation();
           var idx = parseInt(btn.getAttribute('data-idx'));
-          var readings = getBpReadings(currentDate, id);
-          readings.splice(idx, 1);
-          saveBpReadings(currentDate, id, readings);
+          var sessions = getBpSessions(currentDate, id);
+          sessions.splice(idx, 1);
+          saveBpSessions(currentDate, id, sessions);
           renderChecklist();
         });
       });
+    });
 
-      // Add reading
-      var addBtn = el.querySelector('.bp-add-btn');
-      if (addBtn) {
-        addBtn.addEventListener('click', function (e) {
-          e.stopPropagation();
-          var sysInput = el.querySelector('.bp-new-sys');
-          var diaInput = el.querySelector('.bp-new-dia');
-          var bpmInput = el.querySelector('.bp-new-bpm');
-          var sys = parseInt(sysInput.value);
-          var dia = parseInt(diaInput.value);
-          var bpm = parseInt(bpmInput.value);
-          if (!sys || !dia || !bpm) {
-            sysInput.focus();
-            return;
-          }
-          var readings = getBpReadings(currentDate, id);
-          readings.push({ sys: sys, dia: dia, bpm: bpm });
-          saveBpReadings(currentDate, id, readings);
-          renderChecklist();
-        });
-      }
+    // Bind BP add session buttons
+    container.querySelectorAll('.bp-add-session-btn').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        openBpModal(btn.getAttribute('data-id'), currentDate);
+      });
     });
 
     // Render streak
@@ -393,7 +382,7 @@
       var fillableItems = dayItems.filter(function (i) { return i.type === 'text' || i.type === 'bp'; });
       var fillableDone = fillableItems.filter(function (i) {
         var v = entry[i.id];
-        if (i.type === 'bp') return Array.isArray(v) && v.length > 0;
+        if (i.type === 'bp') return Array.isArray(v) && v.length > 0; // sessions
         return v !== undefined && v !== null && v !== '';
       }).length;
 
@@ -415,13 +404,21 @@
         if (item.type === 'checkbox') {
           html += '<span class="history-detail-value ' + (val ? 'done' : 'missed') + '">' + (val ? '✓' : '✗') + '</span>';
         } else if (item.type === 'bp') {
-          var readings = Array.isArray(val) ? val : [];
-          if (readings.length === 0) {
+          var sessions = Array.isArray(val) ? val : [];
+          if (sessions.length === 0) {
             html += '<span class="history-detail-value missed">—</span>';
           } else {
-            html += '<span class="history-bp-readings">';
-            readings.forEach(function (r) {
-              html += '<span class="history-bp-entry">' + r.sys + '/' + r.dia + ' <small>' + r.bpm + 'bpm</small></span>';
+            html += '<span class="history-bp-sessions">';
+            sessions.forEach(function (s) {
+              var avg = s.readings.reduce(function (acc, r) {
+                return { sys: acc.sys + r.sys, dia: acc.dia + r.dia, bpm: acc.bpm + r.bpm };
+              }, { sys: 0, dia: 0, bpm: 0 });
+              var n = s.readings.length;
+              html += '<span class="history-bp-entry">';
+              html += '<span class="history-bp-time">' + s.time + '</span> ';
+              html += Math.round(avg.sys/n) + '/' + Math.round(avg.dia/n);
+              html += ' <small>' + Math.round(avg.bpm/n) + 'bpm</small>';
+              html += '</span>';
             });
             html += '</span>';
           }
@@ -644,6 +641,30 @@
     reader.readAsText(file);
   }
 
+  // ── BP Modal ──
+  function openBpModal(itemId, dateStr) {
+    bpActiveItemId = itemId;
+    bpActiveDate = dateStr;
+    // Pre-fill time with current time
+    var now = new Date();
+    var hh = String(now.getHours()).padStart(2, '0');
+    var mm = String(now.getMinutes()).padStart(2, '0');
+    document.getElementById('bp-session-time').value = hh + ':' + mm;
+    // Clear reading inputs
+    ['bp-r1-sys','bp-r1-dia','bp-r1-bpm','bp-r2-sys','bp-r2-dia','bp-r2-bpm','bp-r3-sys','bp-r3-dia','bp-r3-bpm'].forEach(function (cls) {
+      document.querySelector('.' + cls).value = '';
+    });
+    document.getElementById('modal-bp').classList.remove('hidden');
+    // Focus first input
+    setTimeout(function () { document.querySelector('.bp-r1-sys').focus(); }, 100);
+  }
+
+  function closeBpModal() {
+    bpActiveItemId = null;
+    bpActiveDate = null;
+    document.getElementById('modal-bp').classList.add('hidden');
+  }
+
   // ── Render all ──
   function renderAll() {
     renderHeader();
@@ -714,6 +735,41 @@
       document.getElementById('new-item-name').value = '';
       addForm.classList.add('hidden');
       renderSettings();
+      renderChecklist();
+    });
+
+    // BP session modal
+    document.getElementById('btn-bp-cancel').addEventListener('click', closeBpModal);
+    document.getElementById('modal-bp').addEventListener('click', function (e) {
+      if (e.target === this) closeBpModal();
+    });
+    document.getElementById('btn-bp-save').addEventListener('click', function () {
+      if (!bpActiveItemId) return;
+      var time = document.getElementById('bp-session-time').value;
+      if (!time) {
+        document.getElementById('bp-session-time').focus();
+        return;
+      }
+      var rows = [
+        { sys: 'bp-r1-sys', dia: 'bp-r1-dia', bpm: 'bp-r1-bpm' },
+        { sys: 'bp-r2-sys', dia: 'bp-r2-dia', bpm: 'bp-r2-bpm' },
+        { sys: 'bp-r3-sys', dia: 'bp-r3-dia', bpm: 'bp-r3-bpm' },
+      ];
+      var readings = [];
+      for (var i = 0; i < rows.length; i++) {
+        var sys = parseInt(document.querySelector('.' + rows[i].sys).value);
+        var dia = parseInt(document.querySelector('.' + rows[i].dia).value);
+        var bpm = parseInt(document.querySelector('.' + rows[i].bpm).value);
+        if (!sys || !dia || !bpm) {
+          document.querySelector('.' + rows[i].sys).focus();
+          return;
+        }
+        readings.push({ sys: sys, dia: dia, bpm: bpm });
+      }
+      var sessions = getBpSessions(bpActiveDate, bpActiveItemId);
+      sessions.push({ time: time, readings: readings });
+      saveBpSessions(bpActiveDate, bpActiveItemId, sessions);
+      closeBpModal();
       renderChecklist();
     });
 
