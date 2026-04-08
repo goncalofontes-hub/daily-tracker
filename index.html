@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Daily Tracker</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header id="header">
+      <button id="btn-prev" class="nav-btn" aria-label="Previous day">&larr;</button>
+      <div id="header-date" class="header-date"></div>
+      <button id="btn-next" class="nav-btn" aria-label="Next day">&rarr;</button>
+    </header>
+
+    <!-- Tabs -->
+    <nav id="tabs">
+      <button class="tab active" data-tab="checklist">Today</button>
+      <button class="tab" data-tab="history">History</button>
+      <button class="tab" data-tab="badges">Badges</button>
+      <button class="tab" data-tab="settings">Settings</button>
+    </nav>
+
+    <!-- Checklist View -->
+    <main id="view-checklist" class="view active">
+      <div id="checklist-items"></div>
+      <div id="day-streak" class="day-streak"></div>
+    </main>
+
+    <!-- History View -->
+    <main id="view-history" class="view">
+      <div id="history-list"></div>
+    </main>
+
+    <!-- Badges View -->
+    <main id="view-badges" class="view">
+      <div id="badges-list"></div>
+    </main>
+
+    <!-- Settings View -->
+    <main id="view-settings" class="view">
+      <h2>Checklist Items</h2>
+      <div id="settings-items"></div>
+      <button id="btn-add-item" class="btn-primary">+ Add Item</button>
+      <div id="add-item-form" class="add-form hidden">
+        <input type="text" id="new-item-name" placeholder="Item name" autocomplete="off">
+        <select id="new-item-type">
+          <option value="checkbox">Checkbox (mark as done)</option>
+          <option value="text">Text (write a value)</option>
+        </select>
+        <select id="new-item-schedule">
+          <option value="daily">Every day</option>
+          <option value="weekly">Once a week</option>
+        </select>
+        <select id="new-item-weekday" class="hidden">
+          <option value="0">Sunday</option>
+          <option value="1">Monday</option>
+          <option value="2">Tuesday</option>
+          <option value="3">Wednesday</option>
+          <option value="4">Thursday</option>
+          <option value="5">Friday</option>
+          <option value="6">Saturday</option>
+        </select>
+        <div class="form-actions">
+          <button id="btn-save-item" class="btn-primary">Save</button>
+          <button id="btn-cancel-item" class="btn-secondary">Cancel</button>
+        </div>
+      </div>
+      <hr>
+      <h2>Data</h2>
+      <button id="btn-export" class="btn-secondary">Export Data</button>
+      <button id="btn-import" class="btn-secondary">Import Data</button>
+      <input type="file" id="import-file" accept=".json" class="hidden">
+    </main>
+  </div>
+
+  <!-- Edit item modal -->
+  <div id="modal-edit" class="modal hidden">
+    <div class="modal-content">
+      <h3>Edit Item</h3>
+      <input type="text" id="edit-item-name" placeholder="Item name">
+      <select id="edit-item-type">
+        <option value="checkbox">Checkbox</option>
+        <option value="text">Text</option>
+      </select>
+      <select id="edit-item-schedule">
+        <option value="daily">Every day</option>
+        <option value="weekly">Once a week</option>
+      </select>
+      <select id="edit-item-weekday" class="hidden">
+        <option value="0">Sunday</option>
+        <option value="1">Monday</option>
+        <option value="2">Tuesday</option>
+        <option value="3">Wednesday</option>
+        <option value="4">Thursday</option>
+        <option value="5">Friday</option>
+        <option value="6">Saturday</option>
+      </select>
+      <div class="form-actions">
+        <button id="btn-edit-save" class="btn-primary">Save</button>
+        <button id="btn-edit-delete" class="btn-danger">Delete</button>
+        <button id="btn-edit-cancel" class="btn-secondary">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
