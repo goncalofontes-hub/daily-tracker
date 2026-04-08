@@ -1105,6 +1105,14 @@ body {
   border-color: var(--primary);
 }
 
+/* Update status */
+.update-status {
+  font-size: 13px;
+  color: var(--success);
+  text-align: center;
+  padding: 6px 0;
+}
+
 /* Steps chart */
 .steps-chart {
   display: block;

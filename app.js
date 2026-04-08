@@ -1083,6 +1083,33 @@
     document.getElementById('btn-edit-cancel').addEventListener('click', closeEditModal);
     document.getElementById('modal-edit').addEventListener('click', function (e) { if (e.target === this) closeEditModal(); });
 
+    // Update button
+    document.getElementById('btn-update').addEventListener('click', function () {
+      var statusEl = document.getElementById('update-status');
+      statusEl.textContent = 'Checking...';
+      statusEl.className = 'update-status';
+
+      if (!('serviceWorker' in navigator)) {
+        statusEl.textContent = 'Service worker not supported.';
+        return;
+      }
+
+      // Unregister SW + clear caches → forces fresh download on reload
+      Promise.all([
+        navigator.serviceWorker.getRegistration().then(function (reg) {
+          return reg ? reg.unregister() : true;
+        }),
+        caches.keys().then(function (keys) {
+          return Promise.all(keys.map(function (k) { return caches.delete(k); }));
+        })
+      ]).then(function () {
+        statusEl.textContent = 'Updated! Reloading...';
+        setTimeout(function () { location.reload(); }, 800);
+      }).catch(function () {
+        statusEl.textContent = 'Error updating. Try again.';
+      });
+    });
+
     // Export / Import
     document.getElementById('btn-export').addEventListener('click', exportData);
     document.getElementById('btn-import').addEventListener('click', function () { document.getElementById('import-file').click(); });
