@@ -94,7 +94,7 @@
       { id: generateId(), name: 'Supplementation', type: 'checkbox', schedule: 'daily', weekDay: null, order: 1 },
       { id: generateId(), name: 'Morning Walk', type: 'checkbox', schedule: 'daily', weekDay: null, order: 2 },
       { id: generateId(), name: 'Night Walk', type: 'checkbox', schedule: 'daily', weekDay: null, order: 3 },
-      { id: generateId(), name: 'Tension', type: 'text', schedule: 'daily', weekDay: null, order: 4 },
+      { id: generateId(), name: 'Tension', type: 'bp', schedule: 'daily', weekDay: null, order: 4 },
       { id: generateId(), name: 'Weight', type: 'text', schedule: 'weekly', weekDay: 6, order: 5 },
     ];
   }
@@ -128,6 +128,17 @@
     var entry = getEntry(dateStr);
     var done = checkboxItems.filter(function (i) { return entry[i.id] === true; }).length;
     return { done: done, total: checkboxItems.length, complete: done === checkboxItems.length };
+  }
+
+  // ── BP helpers ──
+  function getBpReadings(dateStr, itemId) {
+    var val = getEntry(dateStr)[itemId];
+    if (!Array.isArray(val)) return [];
+    return val;
+  }
+
+  function saveBpReadings(dateStr, itemId, readings) {
+    setEntryValue(dateStr, itemId, readings);
   }
 
   function getCurrentStreak() {
@@ -164,11 +175,12 @@
     var streak = 0;
     var date = todayStr();
 
-    // For checkbox items, check if marked; for text items, check if non-empty
+    // For checkbox items, check if marked; for text/bp items, check if non-empty
     var isComplete = function (dateStr) {
       var entry = getEntry(dateStr);
       var val = entry[itemId];
       if (item.type === 'checkbox') return val === true;
+      if (item.type === 'bp') return Array.isArray(val) && val.length > 0;
       return val !== undefined && val !== null && val !== '';
     };
 
@@ -239,6 +251,42 @@
           html += '<span class="item-schedule-badge">' + WEEKDAYS[item.weekDay].slice(0, 3) + '</span>';
         }
         html += '</div>';
+      } else if (item.type === 'bp') {
+        var readings = getBpReadings(currentDate, item.id);
+        html += '<div class="checklist-item bp-item" data-id="' + item.id + '" data-type="bp">';
+        html += '<div class="bp-wrapper">';
+        html += '<div class="bp-header">';
+        html += '<span class="item-name">' + escapeHtml(item.name) + '</span>';
+        if (item.schedule === 'weekly') {
+          html += '<span class="item-schedule-badge">' + WEEKDAYS[item.weekDay].slice(0, 3) + '</span>';
+        }
+        html += '</div>';
+        // Existing readings
+        readings.forEach(function (r, idx) {
+          html += '<div class="bp-reading-card">';
+          html += '<span class="bp-values">';
+          html += '<span class="bp-sys">' + r.sys + '</span>';
+          html += '<span class="bp-divider">/</span>';
+          html += '<span class="bp-dia">' + r.dia + '</span>';
+          html += '<span class="bp-dot">·</span>';
+          html += '<span class="bp-bpm">' + r.bpm + '</span>';
+          html += '<span class="bp-unit">bpm</span>';
+          html += '</span>';
+          html += '<button class="bp-delete-btn" data-idx="' + idx + '">×</button>';
+          html += '</div>';
+        });
+        // Add new reading form (show if under 3)
+        if (readings.length < 3) {
+          html += '<div class="bp-add-row">';
+          html += '<input type="number" class="bp-input bp-new-sys" placeholder="SYS" min="50" max="300">';
+          html += '<span class="bp-sep">/</span>';
+          html += '<input type="number" class="bp-input bp-new-dia" placeholder="DIA" min="30" max="200">';
+          html += '<span class="bp-sep">·</span>';
+          html += '<input type="number" class="bp-input bp-new-bpm" placeholder="BPM" min="30" max="250">';
+          html += '<button class="bp-add-btn">+</button>';
+          html += '</div>';
+        }
+        html += '</div></div>';
       } else {
         var val = entry[item.id] || '';
         html += '<div class="checklist-item" data-id="' + item.id + '" data-type="text">';
@@ -275,6 +323,45 @@
       });
     });
 
+    // Bind BP add buttons
+    container.querySelectorAll('[data-type="bp"]').forEach(function (el) {
+      var id = el.getAttribute('data-id');
+
+      // Delete reading
+      el.querySelectorAll('.bp-delete-btn').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var idx = parseInt(btn.getAttribute('data-idx'));
+          var readings = getBpReadings(currentDate, id);
+          readings.splice(idx, 1);
+          saveBpReadings(currentDate, id, readings);
+          renderChecklist();
+        });
+      });
+
+      // Add reading
+      var addBtn = el.querySelector('.bp-add-btn');
+      if (addBtn) {
+        addBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var sysInput = el.querySelector('.bp-new-sys');
+          var diaInput = el.querySelector('.bp-new-dia');
+          var bpmInput = el.querySelector('.bp-new-bpm');
+          var sys = parseInt(sysInput.value);
+          var dia = parseInt(diaInput.value);
+          var bpm = parseInt(bpmInput.value);
+          if (!sys || !dia || !bpm) {
+            sysInput.focus();
+            return;
+          }
+          var readings = getBpReadings(currentDate, id);
+          readings.push({ sys: sys, dia: dia, bpm: bpm });
+          saveBpReadings(currentDate, id, readings);
+          renderChecklist();
+        });
+      }
+    });
+
     // Render streak
     var streak = getCurrentStreak();
     var streakEl = document.getElementById('day-streak');
@@ -302,15 +389,16 @@
       var entry = entries[dateStr];
       var comp = getCompletionForDate(dateStr);
 
-      // Calculate score: checkboxes done + text fields filled
-      var textItems = dayItems.filter(function (i) { return i.type === 'text'; });
-      var textFilled = textItems.filter(function (i) {
+      // Calculate score: checkboxes done + text/bp fields filled
+      var fillableItems = dayItems.filter(function (i) { return i.type === 'text' || i.type === 'bp'; });
+      var fillableDone = fillableItems.filter(function (i) {
         var v = entry[i.id];
+        if (i.type === 'bp') return Array.isArray(v) && v.length > 0;
         return v !== undefined && v !== null && v !== '';
       }).length;
 
-      var totalTasks = comp.total + textItems.length;
-      var doneTasks = comp.done + textFilled;
+      var totalTasks = comp.total + fillableItems.length;
+      var doneTasks = comp.done + fillableDone;
       var pct = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
 
       html += '<div class="history-day">';
@@ -326,6 +414,17 @@
         html += '<span>' + escapeHtml(item.name) + '</span>';
         if (item.type === 'checkbox') {
           html += '<span class="history-detail-value ' + (val ? 'done' : 'missed') + '">' + (val ? '✓' : '✗') + '</span>';
+        } else if (item.type === 'bp') {
+          var readings = Array.isArray(val) ? val : [];
+          if (readings.length === 0) {
+            html += '<span class="history-detail-value missed">—</span>';
+          } else {
+            html += '<span class="history-bp-readings">';
+            readings.forEach(function (r) {
+              html += '<span class="history-bp-entry">' + r.sys + '/' + r.dia + ' <small>' + r.bpm + 'bpm</small></span>';
+            });
+            html += '</span>';
+          }
         } else {
           var displayVal = (val !== undefined && val !== null && val !== '') ? escapeHtml(val) : '—';
           html += '<span class="history-detail-value ' + (displayVal !== '—' ? 'done' : 'missed') + '">' + displayVal + '</span>';
@@ -404,7 +503,7 @@
     items.sort(function (a, b) { return a.order - b.order; });
 
     items.forEach(function (item, idx) {
-      var meta = item.type === 'checkbox' ? 'Checkbox' : 'Text';
+      var meta = item.type === 'checkbox' ? 'Checkbox' : item.type === 'bp' ? 'Blood Pressure' : 'Text';
       meta += ' · ';
       meta += item.schedule === 'daily' ? 'Daily' : WEEKDAYS[item.weekDay] + 's only';
 
